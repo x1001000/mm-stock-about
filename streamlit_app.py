@@ -61,7 +61,7 @@ def main():
     system_prompt = st.sidebar.text_area(
         "Enter System Prompt", 
         "Translate the About section of a company into Traditional Chinese used in Taiwan. Start the translation with the company's founding year and headquarter location in front. Maintain a formal business tone and use industry-specific terminology. Ensure proper localization to match Taiwanese business culture and language preferences. Avoid using simplified Chinese characters or informal language.",
-        height=200
+        height=500
     )
     
     # File uploader
