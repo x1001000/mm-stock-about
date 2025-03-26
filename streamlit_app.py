@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import openai
-import os
 
 def process_batch_openai(df, system_prompt):
     """
@@ -87,6 +86,11 @@ def main():
                 st.error("The uploaded file must have an 'Input' column.")
                 return
             
+            if 'df_processed' in st.session_state:
+                st.subheader("Processed Data")
+                st.dataframe(st.session_state.df_processed)
+                return
+
             # Process button
             if st.button("Process with GPT-4o"):
                 # Validate OpenAI API key
@@ -111,21 +115,11 @@ def main():
                     file_name='processed.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
+
+                st.session_state.df_processed = processed_df
         
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
 
 if __name__ == "__main__":
     main()
-
-# SETUP INSTRUCTIONS:
-# 1. Install required libraries:
-# pip install streamlit pandas openai openpyxl
-
-# 2. Set up Streamlit secrets:
-# Create a file `.streamlit/secrets.toml` in your project directory
-# Add your OpenAI API key:
-# OPENAI_API_KEY = "your-openai-api-key-here"
-
-# 3. Run the app:
-# streamlit run app.py
