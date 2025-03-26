@@ -65,7 +65,7 @@ def main():
     
     # File uploader
     uploaded_file = st.file_uploader(
-        "Upload Excel or CSV File", 
+        "Upload Excel or CSV File. Must contain 'Input' column.", 
         type=['csv', 'xlsx']
     )
     
