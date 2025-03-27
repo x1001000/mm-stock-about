@@ -1,13 +1,18 @@
 import streamlit as st
 import pandas as pd
 import openai
+from pydantic import BaseModel
+
+class BilingualEditions(BaseModel):
+    en_US: str
+    zh_TW: str
 
 def process_batch_openai(df, system_prompt):
     """
     Process a DataFrame batch using OpenAI's API
     
     Args:
-        df (pd.DataFrame): DataFrame with 'Input' column
+        df (pd.DataFrame): DataFrame with 'Source' column
         system_prompt (str): System prompt to guide the AI's responses
     
     Returns:
@@ -25,47 +30,50 @@ def process_batch_openai(df, system_prompt):
     progress_bar = st.progress(0)
     
     # Process each row
-    outputs = []
+    en_US, zh_TW = [], []
     for index, row in df.iterrows():
         try:
             # Make API call
-            response = client.chat.completions.create(
+            response = client.beta.chat.completions.parse(
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": str(row['Input'])}
-                ]
+                    {"role": "user", "content": str(row['Source'])}
+                ],
+                response_format=BilingualEditions,
             )
             
             # Extract the response text
-            output = response.choices[0].message.content
-            outputs.append(output)
+            en_US.append(response.choices[0].message.parsed.en_US)
+            zh_TW.append(response.choices[0].message.parsed.zh_TW)
         
         except Exception as e:
-            outputs.append(f"Error: {str(e)}")
+            st.write(f"Error: {str(e)}")
+            raise
         
         # Update progress bar
         progress_bar.progress((index + 1) / len(df))
     
     # Add outputs to the DataFrame
-    df['Output'] = outputs
+    df['en_US'] = en_US
+    df['zh_TW'] = zh_TW
     
     return df
 
 def main():
-    st.title("GPT-4o Batch Processing App")
+    st.title("文字生成批次處理工具")
     
     # Sidebar for system prompt
-    st.sidebar.header("System Prompt Configuration")
+    st.sidebar.header("請先小量測試，找出效果最佳的系統提示詞")
     system_prompt = st.sidebar.text_area(
-        "Enter System Prompt", 
-        "Translate the About section of a company into Traditional Chinese used in Taiwan. Start the translation with the company's founding year and headquarter location in front. Maintain a formal business tone and use industry-specific terminology. Ensure proper localization to match Taiwanese business culture and language preferences. Avoid using simplified Chinese characters or informal language.",
+        "這裡寫的是 system/developer prompt，上傳的檔案的每一列是 user prompt，兩個 prompt 同時送入 GPT-4o 做一次文字生成（inference），以迴圈的方式處理每一列", 
+        "你將重新整理使用者輸入的公司介紹，若有公司創立時間、總部地點則放在最前面，適時分段提升可讀性，撰寫英文及台灣繁體中文兩個版本，台灣繁體中文使用台灣用語，不要使用中國大陸用語，不要使用 Markdown 語法，不要有超連結",
         height=500
     )
     
     # File uploader
     uploaded_file = st.file_uploader(
-        "Upload Excel or CSV File. Must contain 'Input' column.", 
+        "上傳 Excel 或 CSV 檔，要有一欄的標題命名為 Source", 
         type=['csv', 'xlsx']
     )
     
@@ -81,9 +89,9 @@ def main():
             st.subheader("Original Data")
             st.dataframe(df)
             
-            # Check if 'Input' column exists
-            if 'Input' not in df.columns:
-                st.error("The uploaded file must have an 'Input' column.")
+            # Check if 'Source' column exists
+            if 'Source' not in df.columns:
+                st.error("The uploaded file must have an 'Source' column.")
                 return
             
             if 'df_processed' in st.session_state:
@@ -92,7 +100,7 @@ def main():
                 return
 
             # Process button
-            if st.button("Process with GPT-4o"):
+            if st.button("按我批次處理每一列"):
                 # Validate OpenAI API key
                 if 'OPENAI_API_KEY' not in st.secrets:
                     st.error("Please set OpenAI API key in Streamlit secrets.")
@@ -110,7 +118,7 @@ def main():
                 buffer = io.BytesIO()
                 processed_df.to_excel(buffer, index=False, engine='openpyxl')
                 st.download_button(
-                    label="Download Processed File",
+                    label="按我下載 processed.xlsx",
                     data=buffer.getvalue(),
                     file_name='processed.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

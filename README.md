@@ -1,4 +1,4 @@
-# OpenAI Batch Processing Streamlit App
+# MM Stock About Batch Processing Tool
 
 ## Overview
 This Streamlit application allows you to:
