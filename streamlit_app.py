@@ -77,7 +77,7 @@ def main():
         type=['csv', 'xlsx']
     )
     
-    if uploaded_file is not None:
+    if uploaded_file:
         # Read the file
         try:
             if uploaded_file.name.endswith('.csv'):
@@ -87,7 +87,8 @@ def main():
             
             # Display original DataFrame
             st.subheader("Original Data")
-            st.dataframe(df)
+            # With magic:
+            df
             
             # Check if 'Source' column exists
             if 'Source' not in df.columns:
@@ -96,7 +97,7 @@ def main():
             
             if 'df_processed' in st.session_state:
                 st.subheader("Processed Data")
-                st.dataframe(st.session_state.df_processed)
+                st.session_state.df_processed
                 return
 
             # Process button
@@ -111,7 +112,8 @@ def main():
                 
                 # Display processed DataFrame
                 st.subheader("Processed Data")
-                st.dataframe(processed_df)
+                # With magic:
+                processed_df
                 
                 # Download button for Excel
                 import io
@@ -128,6 +130,8 @@ def main():
         
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
+    elif 'df_processed' in st.session_state:
+        del st.session_state.df_processed
 
 if __name__ == "__main__":
     main()
