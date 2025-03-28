@@ -33,7 +33,7 @@ def process_batch_openai(df, system_prompt):
     progress_bar = st.progress(0)
     
     # Process each row
-    en_US, zh_TW = [], []
+    en_US, zh_TW, zh_TW_x_s2twp = [], [], []
     for index, row in df.iterrows():
         try:
             # Make API call
@@ -48,7 +48,8 @@ def process_batch_openai(df, system_prompt):
             
             # Extract the response text
             en_US.append(response.choices[0].message.parsed.en_US)
-            zh_TW.append(cc.convert(response.choices[0].message.parsed.zh_TW))
+            zh_TW.append(response.choices[0].message.parsed.zh_TW)
+            zh_TW_x_s2twp.append(cc.convert(response.choices[0].message.parsed.zh_TW))
         
         except Exception as e:
             st.write(f"Error: {str(e)}")
@@ -60,6 +61,7 @@ def process_batch_openai(df, system_prompt):
     # Add outputs to the DataFrame
     df['en_US'] = en_US
     df['zh_TW'] = zh_TW
+    df['zh_TW * s2twp(簡轉繁含慣用詞)'] = zh_TW_x_s2twp
     
     return df
 
@@ -70,7 +72,7 @@ def main():
     st.sidebar.header("請先小量測試，找出效果最佳的系統提示詞")
     system_prompt = st.sidebar.text_area(
         "這裡寫的是 system/developer prompt，上傳的檔案的每一列是 user prompt，兩個 prompt 同時送入 GPT-4o 做一次文字生成（inference），以迴圈的方式處理每一列", 
-        "我們要開發一個財報專區，需要請你重新整理使用者輸入的內容，產出適合大眾閱讀的公司介紹。若使用者輸入的內容有公司創立時間、總部地點，則放在最前面，若內容很簡短，就維持其內容即可無需增加內容，若內容較長，要適時分段提升可讀性。\n\n撰寫英文及台灣繁體中文兩個版本，台灣繁體中文使用台灣用語，不要使用中國大陸用語，不要使用 Markdown 語法，不要有超連結。",
+        "我們要開發一個財報專區，需要請你重新整理使用者輸入的內容，產出適合大眾閱讀的公司介紹。若使用者輸入的內容有公司創立時間、總部地點，則放在最前面，若內容很簡短，就維持其內容即可無需增加內容，若內容較長，要適時分段提升可讀性。\n\n撰寫英文及台灣繁體中文兩個版本，台灣繁體中文使用台灣用語，不要使用中國大陸用語，不要使用 Markdown 語法或任何格式，只要純文字，不要有超連結。",
         height=500
     )
     
