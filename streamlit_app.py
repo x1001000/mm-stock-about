@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
 import openai
-from pydantic import BaseModel
 
+from pydantic import BaseModel
 class BilingualEditions(BaseModel):
     en_US: str
     zh_TW: str
+
+from opencc import OpenCC
+cc = OpenCC('s2twp')
 
 def process_batch_openai(df, system_prompt):
     """
@@ -45,7 +48,7 @@ def process_batch_openai(df, system_prompt):
             
             # Extract the response text
             en_US.append(response.choices[0].message.parsed.en_US)
-            zh_TW.append(response.choices[0].message.parsed.zh_TW)
+            zh_TW.append(cc.convert(response.choices[0].message.parsed.zh_TW))
         
         except Exception as e:
             st.write(f"Error: {str(e)}")
