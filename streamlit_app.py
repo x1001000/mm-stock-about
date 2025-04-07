@@ -10,13 +10,14 @@ class BilingualEditions(BaseModel):
 from opencc import OpenCC
 cc = OpenCC('s2twp')
 
-def process_batch_openai(df, system_prompt):
+def process_batch_openai(df, system_prompt, model):
     """
     Process a DataFrame batch using OpenAI's API
     
     Args:
         df (pd.DataFrame): DataFrame with 'Source' column
         system_prompt (str): System prompt to guide the AI's responses
+        model (str): The OpenAI model to use
     
     Returns:
         pd.DataFrame: DataFrame with added 'Output' column
@@ -38,7 +39,7 @@ def process_batch_openai(df, system_prompt):
         try:
             # Make API call
             response = client.beta.chat.completions.parse(
-                model="gpt-4o",
+                model=model,  # Use the selected model
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": str(row['Source'])}
@@ -69,13 +70,21 @@ def main():
     st.title("文字生成批次處理工具")
     
     # Sidebar for system prompt
-    st.sidebar.header("請先小量測試，找出效果最佳的系統提示詞")
+    st.sidebar.header("僅供小量測試，找出效果最佳的系統提示詞")
     system_prompt = st.sidebar.text_area(
         "這裡寫的是 system/developer prompt，上傳的檔案的每一列是 user prompt，兩個 prompt 同時送入 GPT-4o 做一次文字生成（inference），以迴圈的方式處理每一列", 
         "我們要開發一個財報專區，需要請你重新整理使用者輸入的內容，產出適合大眾閱讀的公司介紹。若使用者輸入的內容有公司創立時間、總部地點，則放在最前面，若內容很簡短，就維持其內容即可無需增加內容，若內容較長，要適時分段提升可讀性。\n\n撰寫英文及台灣繁體中文兩個版本，台灣繁體中文使用台灣用語，不要使用中國大陸用語，不要使用 Markdown 語法或任何格式，只要純文字，不要有超連結。",
         height=500
     )
-    
+
+    # Add model selection dropdown
+    model = st.sidebar.selectbox(
+        "選擇模型",
+        ["gpt-4o-mini", "gpt-4o"],
+        index=0,  # Default to gpt-4o-mini
+        help="gpt-4o-mini 價格是 gpt-4o 的 0.06 倍，gpt-4o 價格是 10 usd / 1M output tokens"
+    )
+
     # File uploader
     uploaded_file = st.file_uploader(
         "上傳 Excel 或 CSV 檔，要有一欄的標題命名為 Source", 
@@ -113,7 +122,7 @@ def main():
                     return
                 
                 # Process the batch
-                processed_df = process_batch_openai(df, system_prompt)
+                processed_df = process_batch_openai(df, system_prompt, model)
                 
                 # Display processed DataFrame
                 st.subheader("Processed Data")
